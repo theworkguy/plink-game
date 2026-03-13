@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Plinko</title>
+<meta content='yes' name='mobile-web-app-capable'>
+<link href='data:,' rel='shortcut icon'>
+<meta content='user-scalable=no, width=device-width, initial-scale=1, minimum-scale=1.0, maximum-scale=1.0, viewport-fit=cover' name='viewport'>
+
+<script type='text/javascript'>
+// ============================================================
+// OFFLINE PLINKO - All API handled by serve.py (localhost:8080)
+// Client-side: only block WebSocket, sendBeacon, analytics
+// ============================================================
+
+// --- BLOCK WebSocket (no WS server) ---
+window.WebSocket = function(url) {
+    console.log('[OFFLINE] Blocked WebSocket:', url);
+    return {
+        readyState: 1, OPEN: 1, CLOSED: 3,
+        send: function() {},
+        close: function() { this.readyState = 3; },
+        addEventListener: function(ev, cb) { if (ev === 'open') setTimeout(cb, 0); },
+        removeEventListener: function() {},
+        dispatchEvent: function() {},
+        onopen: null, onclose: null, onmessage: null, onerror: null
+    };
+};
+window.WebSocket.OPEN = 1;
+window.WebSocket.CLOSED = 3;
+
+// --- BLOCK sendBeacon ---
+navigator.sendBeacon = function() { return true; };
+
+// --- BLOCK onbeforeunload beacon ---
+window.onbeforeunload = function() {};
+
+// --- BLOCK analytics/lobby/drops in fetch ---
+const _origFetch = window.fetch;
+window.fetch = function(url, opts) {
+    const u = typeof url === 'string' ? url : (url && url.url) || '';
+    if (/cable|lobby|drops|replays|boost2|amplitude|googletagmanager|gtag|bgaming-system|challenges|quests/i.test(u)) {
+        return Promise.resolve(new Response('{}', { status: 200, headers: { 'Content-Type': 'application/json' } }));
+    }
+    return _origFetch.apply(this, arguments);
+};
+
+// --- BLOCK analytics/lobby/drops in XHR ---
+const _XHROpen = XMLHttpRequest.prototype.open;
+const _XHRSend = XMLHttpRequest.prototype.send;
+XMLHttpRequest.prototype.open = function(method, url) {
+    this._url = url;
+    return _XHROpen.apply(this, arguments);
+};
+XMLHttpRequest.prototype.send = function(data) {
+    if (this._url && /cable|lobby|drops|replays|boost2|amplitude|googletagmanager|gtag|bgaming-system|challenges|quests/i.test(this._url)) {
+        return;
+    }
+    return _XHRSend.apply(this, arguments);
+};
+
+// --- CONFIGURE window.__OPTIONS__ (serve.py handles all API calls) ---
+window.__OPTIONS__ = {
+    "env": "production",
+    "csrfTokenHeaderName": "X-CSRF-Token",
+    "csrfTokenHeaderValue": "offline-token",
+    "play_token": "offline-local-play",
+    "game": "casual/plinko",
+    "identifier": "Plinko",
+    "title": "Plinko",
+    "currency": "FUN",
+    "balance_polling_interval": 999999999,
+    "cache_id": "offline-cache",
+    "cache_player_id": "offline-player",
+    "api": "/api/Plinko/0/offline",
+    "rules_url": "/games-aux/rules/en/Plinko.json",
+    "deposit_url": null,
+    "games_page_url": null,
+    "history_url": null,
+    "lobby_launch_url": null,
+    "game_page_url": "/index.html",
+    "websocket_url": "wss://localhost:0/cable",
+    "drops_websocket_url": "wss://localhost:0/cable",
+    "ui": {
+        "home_button": false,
+        "full_screen_prompt": true,
+        "logo": "standard",
+        "skin": "basic",
+        "skins": ["basic"],
+        "brand_logo": null,
+        "brand": {"name":"","logo":null,"logo_in_game":null},
+        "autospins_dialog": "standard",
+        "autospin_values": ["10","25","50","100","250","500","750","1000","\u221e"],
+        "gamble_enabled": true,
+        "show_rtp_in_rules": true
+    },
+    "resources_path": "/assets",
+    "custom": {},
+    "actual_currency_rate": 0.0,
+    "sound_enabled": true,
+    "games_loader_source": "/loader.js",
+    "game_bundle_source": "/assets/basic/v0.0.57_v14.16.3/bundle.js",
+    "provable_fair": {"verify_url": "/api/games/verify"},
+    "math": {"rtp":{"main":98.91,"min_rtp":98.91,"max_rtp":99.16},"max_multiplier":1000.0},
+    "rules": {"min_bet":100,"max_bet":10000,"currency":{"code":"FUN","symbol":"FUN","subunits":100,"exponent":2}},
+    "version": "1.0.0",
+    "growthbook_flags": {"tech_lobby_widget_position":{"value":{"desktop":"bottom","portrait":"top","landscape":"top"},"variation_id":"forced","experiment_key":null}},
+    "lobby_v2_options": {
+        "player_id": 1,
+        "lobby_enabled": false,
+        "drops_enabled": false,
+        "profile_enabled": false,
+        "gamelist_enabled": false,
+        "challenges_enabled": false,
+        "quests_enabled": false
+    },
+    "server_id": "offline",
+    "locale": "en",
+    "actions": {"deposit":null,"return":null,"history":{"text":null,"link":"/api/rounds_history/offline","mode":"open"}},
+    "show_paytable": false,
+    "license_rules": {
+        "rules_section": {
+            "show_license_requirements": false,
+            "license_requirement_show_purchase": false,
+            "license_requirement_show_autoplay": false,
+            "license_requirement_show_quick_spins": false,
+            "show_rtp": ["main_rtp","chance_rtp","bonus_rtp"],
+            "show_gamble_round": true,
+            "show_min_max": false,
+            "show_max_win_frequency": false,
+            "show_max_multiplier": false
+        },
+        "screen_section": {
+            "show_rtp_on_main_screen": false,
+            "show_max_win_frequency_on_main_screen": false,
+            "show_max_multiplier_on_main_screen": false
+        },
+        "lines_count": "60"
+    },
+    "open_page_method": "redirect",
+    "reset_bet_to_default": null
+};
+</script>
+
+<style>
+    body { background-color: #000000; margin: 0; overflow: hidden; }
+</style>
+<style>
+  .preloader, .preloader_figure { position: absolute; top: 50%; left: 50%; -webkit-transform: translate(-50%, -50%); transform: translate(-50%, -50%);}
+  .preloader { overflow: visible; padding-top: 2em; height: 0; width: 2em;}
+  .preloader_figure { height: 0; width: 0; box-sizing: border-box; border: 0 solid #ff2c2c; border-radius: 50%; -webkit-animation: loader-figure 1.15s infinite cubic-bezier(0.215, 0.61, 0.355, 1); animation: loader-figure 1.15s infinite cubic-bezier(0.215, 0.61, 0.355, 1);}
+  .preloader_label { font-family: "Consolas", "Courier", monospace; float: left; margin-left: 50%; -webkit-transform: translateX(-50%); transform: translateX(-50%); margin: 0.5em 0 0 50%; font-size: 0.875em; letter-spacing: 0.1em; line-height: 1.5em; color: #ff2c2c; white-space: nowrap; -webkit-animation: loader-label 1.15s infinite cubic-bezier(0.215, 0.61, 0.355, 1); animation: loader-label 1.15s infinite cubic-bezier(0.215, 0.61, 0.355, 1);}
+  @keyframes loader-figure { 0% { height: 0; width: 0; } 30% { height: 2em; width: 2em; border-width: 1em; opacity: 1; } 100% { height: 2em; width: 2em; border-width: 0; opacity: 0; }}
+  @keyframes loader-label { 0% { opacity: 0.35; } 30% { opacity: 1; } 100% { opacity: 0.35; }}
+</style>
+</head>
+<body>
+<div class='preloader'>
+<div class='preloader_figure'></div>
+<p class='preloader_label'>Loading</p>
+</div>
+
+<script src="loader.js" crossorigin="anonymous"></script>
+<script type='text/javascript'>
+document.write('\x3Cscript src="' + window.__OPTIONS__.game_bundle_source + '" crossorigin="anonymous">\x3C/script>');
+</script>
+</body>
+</html>

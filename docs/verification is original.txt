@@ -1,0 +1,41 @@
+Full Audit Report
+
+  VERIFIED ORIGINAL (unchanged from BGaming CDN):
+
+  - bundle.js (933KB) - Original game engine, untouched
+  - 84+ images (all formats: png, webp, jpg, gif) - All present
+  - 14 sounds (ogg + aac dual format) - All present
+  - 12 preloader assets - All present
+  - Translations (en.json) - Complete, 471 lines
+  - Rules (Plinko.json) - Complete with HTML content
+
+  VERIFIED CORRECT (our code matches original behavior):
+
+  - Paytable: All 36 arrays (9 rows x 4 fields) match original byte-for-byte
+  - Provably fair: SHA-256 + rotation algorithm verified against live BGaming API
+  - Win calculation: int(bet * multiplier + 0.5) matches JavaScript Math.round
+  - JSON format: Compact separators (',',':') match BGaming's secret format
+  - Client seed: Single digit 0-9, Number(join("")) || 0, modulo 32 rotation
+  - Response structure: All fields game engine reads are present
+
+  BUGS FIXED IN THIS AUDIT:
+
+  1. Added requested_command to init and play responses (game uses it for flow.command)
+  2. Added balance validation - returns error 301 when insufficient funds
+  3. Fixed win rounding - changed from Python round() (banker's) to int(x+0.5) (matches JS)
+  4. Added input validation - bet clamped to min/max, risk_level and rows validated
+
+  NOT FAKE - EVERYTHING IS REAL:
+
+  - Game visuals = original PixiJS engine rendering original sprites
+  - Game sounds = original audio files
+  - Game math = original paytable with original multipliers
+  - Provably fair = real cryptographic verification (SHA-256)
+  - RTP = 98.91% (same as original)
+
+  ACCEPTABLE DEVIATIONS (intentional for offline):
+
+  - home_button: false (no games page to navigate to)
+  - lobby_enabled: false (no lobby server)
+  - actions.history: null (no persistent round history)
+  - balance_polling_interval: 999999999 (no external balance source)
