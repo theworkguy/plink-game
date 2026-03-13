@@ -569,16 +569,19 @@ class PlinkoHandler(http.server.SimpleHTTPRequestHandler):
             print(f"  [MISS] {msg}")
 
 
+HOST = "0.0.0.0"
+
 print(f"""
 ====================================================
-  PLINKO OFFLINE - FULL SERVER
+  PLINKO - FULL SERVER
 ====================================================
   URL:     http://localhost:{PORT}
+  Bind:    {HOST}:{PORT}
   Balance: {game_balance/100:.2f} FUN
   Provably Fair: SHA-256 + Rotation
   CDN Cache: Auto-fetch and store locally
 ====================================================
 """)
 
-with http.server.HTTPServer(("", PORT), PlinkoHandler) as httpd:
+with http.server.HTTPServer((HOST, PORT), PlinkoHandler) as httpd:
     httpd.serve_forever()
